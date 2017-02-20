@@ -1,0 +1,6 @@
+{
+  "globalDependencies": {
+    "dateformat": "registry:dt/dateformat#1.0.12+20161005184000",
+    "platform": "registry:dt/platform#1.0.0+20160510002910"
+  }
+}
