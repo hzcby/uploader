@@ -48,18 +48,18 @@ class Uploader extends Component {
     setContractFile(){
         const file = document.getElementById("uploadfile").files[0];
         let sha="";
-        let h = crypto.createHash("sha256");
+        let h = crypto.createHash("md5");
         let reader = new FileReader();
         let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice;
         let chunkSize=1024;
         let currentChunk=0;
         let chunks=Math.ceil(file.size / chunkSize);
         let ext = (file.name).substring(file.name.lastIndexOf('.')+1);
+        
         reader.onload=function(e) {
                 h=h.update(e.target.result)
                 currentChunk++;
                 if (currentChunk<chunks){
-                   // console.log("load next")
                     loadNext();
                 }else{
                     console.log("finished");
@@ -67,31 +67,33 @@ class Uploader extends Component {
                     
                     console.log(sha);
                 }
-            };
+        };
+
         reader.onloadend=()=>{
             console.log(sha);
             this.setState({Sha256Vaule:sha});
         }
-            reader.onerror=function(){
-                console.warn("oops something went wrong");
-            };
-            function loadNext(){
-                let start=currentChunk*chunkSize;
-                let end = ((start+chunkSize)>file.size)?file.size:start+chunkSize;
-                reader.readAsArrayBuffer(blobSlice.call(file,start,end))
-            };
+        reader.onerror=function(){
+            console.warn("oops something went wrong");
+        };
+        
+        function loadNext(){
+            let start=currentChunk*chunkSize;
+            let end = ((start+chunkSize)>file.size)?file.size:start+chunkSize;
+            reader.readAsArrayBuffer(blobSlice.call(file,start,end))
+        };
+
         loadNext(); 
         console.log(file)
-        this.setState({File:file})
+        this.setState({file:file})
         
     }
     upLoad(){
         const {dispatch} = this.props;
-        const {File,Sha256Vaule}= this.state;
+        const {file,Sha256Vaule}= this.state;
         console.log(Sha256Vaule);
-        const file = document.getElementById("uploadfile").files[0];
-       
-        dispatch(createContract(File,Sha256Vaule))
+        //const file = document.getElementById("uploadfile").files[0];
+        createContract(file,Sha256Vaule)
     }
     render () {
         return (
