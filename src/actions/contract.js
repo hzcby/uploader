@@ -1,7 +1,7 @@
 import * as types from '../constants/ActionTypes';
 import crypto from 'crypto';
 import fs from 'browserify-fs'
-import {PutObject } from '../utils/aliyunoss/client';
+import {PutObject,PostObject } from '../utils/aliyunoss/client';
 
 export function createContract(file,sha){
     //return (dispatch,getState)=>{
@@ -22,9 +22,4 @@ export function createContract(file,sha){
             })
         })
         .catch(err =>{console.log(err)})
-    
-    console.log(data)
-   
-
-    
 }

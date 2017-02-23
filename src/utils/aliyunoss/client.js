@@ -12,13 +12,86 @@ import platform from 'platform';
 import dateFormat from 'dateformat';
 import bowser from 'bowser';
 import AgentKeepalive from 'agentkeepalive';
+import {Base64} from './base64';
 
 const globalHttpAgent= new AgentKeepalive();
+
+export function PostObject(bucket,object,region,ak,sk,token,file){
+    console.log("bucket:",bucket)
+    console.log("object ",object)
+    console.log("region: ",region)
+    console.log("ak: ",ak)
+    console.log("sk: ",sk)
+    console.log("token: ",token)
+    console.log("file:",file)
+
+    let d =new Date();
+    let s = new Date(d.getTime()+1000*1000);
+    s=s.toISOString();
+
+    let policy = {
+        expiration:s,
+        conditions:[
+            {bucket:bucket},
+            ["eq","$key",object],
+            ["content-length-range", 1, file.size]
+        ]
+    };
+    console.log(JSON.stringify(policy))
+    let policybase64=Base64.encode(JSON.stringify(policy));
+    let signature = crypto.createHmac("sha1",sk).update(JSON.stringify(policy)).digest('base64');
+
+    let form=new FormData();
+    
+    form.append("key",object);
+    form.append("success_action_status",200);
+    form.append("OSSAccessKeyId",ak);
+    form.append("policy",policybase64);
+    form.append("Signature",signature);
+    form.append("file",file.name);
+    form.append("x-oss-security-token",token)
+    form.append("submit","Upload to OSS");
+
+    let header = new Headers();
+    let myInit = {
+        method:"POST",
+        header:header,
+        body:form,
+    }
+    for (let pair of form){
+        console.log(pair[0]+' '+pair[1])
+    }
+    //
+    fetch(getDomain(bucket,region,false,false),myInit)
+    .then(response=>{
+        console.log(response)
+        console.log(response.text())
+        
+    })
+    .catch(err=>{
+        console.log(err)
+        throw err ;
+    })
+}
+
+function getDomain(bucket,region,internal,secure){
+    let protocol = secure? 'https://':'http://';
+    let suffix = internal? '-internal.aliyuncs.com':'.aliyuncs.com';
+    return protocol+bucket+"."+region+suffix;
+}
+
+
 
 
 export function PutObject(bucket,object,region,ak,sk,token,file){
     //idealcity.oss-cn-shanghai.aliyuncs.com
-    console.log(bucket,object,region,ak,sk,token,file)
+    console.log("bucket:",bucket)
+    console.log("object ",object)
+    console.log("region: ",region)
+    console.log("ak: ",ak)
+    console.log("sk: ",sk)
+    console.log("token: ",token)
+    console.log("file:",file)
     let headers=genHeaders(token,file);
     let auth = authorization("PUT",headers,bucket,region,object,ak,sk,file,'')
     let url=getUrl(bucket,object,region,false,false)
@@ -26,12 +99,16 @@ export function PutObject(bucket,object,region,ak,sk,token,file){
         method:"PUT",
         body:file,
         header:headers,
+        //mode:"no-cors",
     }
     fetch(url,myInit)
     .then(response=>{
         console.log(response)
+        response.text().then(txt=>{
+            console.log(txt)
+        });
         if (response.status!=200){
-            throw(new Error("put object failed"))
+            throw "put object failed"
         }
         return true;
     })
@@ -111,6 +188,7 @@ function authorization(method,headers,bucket,region,object,accessKeyId,accessKey
     params.push(resourceStr);
     let stringToSign = params.join('\n');
     let auth = 'OSS '+accessKeyId+':';
+    console.log(stringToSign);
     return auth+signature(stringToSign,accessKeySecret)
 }
 
@@ -139,7 +217,7 @@ function getUrl(bucket,object,region,secure,internal){
 
 function getResource(bucket,object){
     var resource="/";
-    if (bucket) resource+=bucket+'/';
+    if (bucket) resource+=bucket;
     if (object) resource+=object;
     return resource
 }
